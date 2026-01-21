@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Lô Tô 9x9</title>
+<title>Loto</title>
 
 <style>
 body {
@@ -68,33 +68,67 @@ function getColRange(col) {
 }
 
 /* ================== GENERATE ================== */
-function generateBoards() {
-  let result = [];
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
-  for (let b = 0; b < 20; b++) {
-    let board = [];
+function generateOneBoard() {
+  // tạo pool số cho từng cột
+  const colPools = [];
 
-    for (let r = 0; r < 9; r++) {
-      let row = Array(9).fill("");
-      let cols = [];
+  for (let c = 0; c < 9; c++) {
+    let min = c === 8 ? 80 : c * 10 + 1;
+    let max = c === 8 ? 90 : c * 10 + 9;
 
-      while (cols.length < 5) {
-        let c = Math.floor(Math.random() * 9);
-        if (!cols.includes(c)) cols.push(c);
-      }
-
-      cols.forEach(c => {
-        const [min, max] = getColRange(c);
-        row[c] = Math.floor(Math.random() * (max - min + 1)) + min;
-      });
-
-      board.push(row);
-    }
-
-    result.push(board);
+    let pool = [];
+    for (let n = min; n <= max; n++) pool.push(n);
+    colPools.push(shuffle(pool));
   }
 
-  return result;
+  // khởi tạo bảng rỗng
+  let board = Array.from({ length: 9 }, () => Array(9).fill(""));
+
+  // mỗi hàng chọn đúng 5 cột
+  let rowCols = [];
+  for (let r = 0; r < 9; r++) {
+    rowCols[r] = shuffle([0,1,2,3,4,5,6,7,8]).slice(0,5);
+  }
+
+  // phân số theo cột
+  for (let c = 0; c < 9; c++) {
+    // các hàng có số ở cột này
+    let rows = rowCols
+      .map((cols, r) => cols.includes(c) ? r : null)
+      .filter(r => r !== null);
+
+    // mỗi cột tối đa 9 số, pool luôn đủ
+    rows.forEach(r => {
+      board[r][c] = colPools[c].pop();
+    });
+  }
+
+  return board;
+}
+
+function generateBoards() {
+  let boards = [];
+  let signatures = new Set();
+
+  while (boards.length < 20) {
+    let board = generateOneBoard();
+    let sig = JSON.stringify(board);
+
+    if (!signatures.has(sig)) {
+      signatures.add(sig);
+      boards.push(board);
+    }
+  }
+
+  return boards;
 }
 
 /* ================== INIT ================== */
