@@ -6,24 +6,33 @@
 
 <style>
 body { font-family: Arial; text-align: center; }
-table { border-collapse: collapse; margin: 15px auto; }
+
+table {
+  border-collapse: collapse;
+  margin: 15px auto;
+  border: 5px solid black; /* sẽ đổi màu bằng JS */
+}
 
 td {
-  width: 50px;
-  height: 50px;
-  border: 1px solid #000;
+  width: 45px;
+  height: 45px;
+  border: 2px solid black; /* sẽ đổi màu bằng JS */
   font-weight: bold;
   text-align: center;
   cursor: pointer;
+  background: white;
 }
 
-.marked { background: #ffeb3b; }
+.marked {
+  background: #ffeb3b;
+}
 
 select {
   font-size: 16px;
   padding: 5px;
 }
 </style>
+
 </head>
 
 <body>
@@ -106,14 +115,16 @@ for (let i = 1; i <= TOTAL_BOARDS; i++) {
 function loadBoard(id) {
   const table = document.getElementById("board");
   table.innerHTML = "";
-  table.style.background = colors[id - 1];
+  const color = colors[id - 1];
+table.style.borderColor = color;
 
   boards[id].forEach(row => {
     let tr = document.createElement("tr");
     row.forEach(cell => {
       let td = document.createElement("td");
-      td.textContent = cell;
-      td.onclick = () => td.classList.toggle("marked");
+td.textContent = cell;
+td.style.borderColor = color;
+td.onclick = () => td.classList.toggle("marked");
       tr.appendChild(td);
     });
     table.appendChild(tr);
