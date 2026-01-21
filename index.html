@@ -1,183 +1,127 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <title>Chọn Ticket Lô Tô</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<title>Lô Tô 9x9</title>
 
-  <style>
-    .ticket-grid {
-      display: grid;
-      grid-template-columns: repeat(9, 1fr);
-      gap: 4px;
-    }
-    .cell {
-      height: 32px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      background: #e5e7eb;
-    }
-    .cell.empty {
-      background: transparent;
-    }
-    .ticket {
-      border-radius: 14px;
-      padding: 10px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .ticket:hover {
-      transform: scale(1.03);
-    }
-    .ticket.disabled {
-      opacity: 0.35;
-      pointer-events: none;
-    }
-  </style>
+<style>
+body { font-family: Arial; text-align: center; }
+table { border-collapse: collapse; margin: 15px auto; }
+
+td {
+  width: 50px;
+  height: 50px;
+  border: 1px solid #000;
+  font-weight: bold;
+  text-align: center;
+  cursor: pointer;
+}
+
+.marked { background: #ffeb3b; }
+
+select {
+  font-size: 16px;
+  padding: 5px;
+}
+</style>
 </head>
 
-<body class="bg-gray-100 p-6">
+<body>
 
-<h1 class="text-3xl font-extrabold mb-2 text-center">🎟️ Chọn Ticket Lô Tô</h1>
-<p class="text-center text-gray-500 mb-6">
-  16 tờ • 8 màu • 
-</p>
+<h2>Chọn tờ lô tô</h2>
+<select id="boardSelect"></select>
 
-<div id="ticketList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto"></div>
+<table id="board"></table>
 
 <script>
-/* =========================
-   CONFIG
-========================= */
-
-const COLORS = [
-  { key: "cam", label: "Cam", bg: "bg-orange-400" },
-  { key: "vang", label: "Vàng", bg: "bg-yellow-300" },
-  { key: "hong", label: "Hồng", bg: "bg-pink-400" },
-  { key: "do", label: "Đỏ", bg: "bg-red-500" },
-  { key: "xanhla", label: "Xanh lá", bg: "bg-green-400" },
-  { key: "xanhduong", label: "Xanh dương", bg: "bg-blue-400" },
-  { key: "nau", label: "Nâu", bg: "bg-amber-700" },
-  { key: "tim", label: "Tím", bg: "bg-purple-400" }
+const TOTAL_BOARDS = 20;
+const boards = {};
+const colors = [
+  "#ff9800","#ffc107","#e91e63","#f44336","#4caf50",
+  "#2196f3","#795548","#9c27b0","#00bcd4","#8bc34a",
+  "#ff5722","#cddc39","#3f51b5","#009688","#607d8b",
+  "#673ab7","#ffb74d","#81c784","#64b5f6","#ce93d8"
 ];
 
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
+// random số theo cột
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/* =========================
-   SINH 2 TICKET BÙ TRỪ
-========================= */
-
-function generatePair(colorKey) {
-
-  // 9 cột số chuẩn
-  const columns = [
-    range(1,9),
-    range(10,19),
-    range(20,29),
-    range(30,39),
-    range(40,49),
-    range(50,59),
-    range(60,69),
-    range(70,79),
-    range(80,90)
-  ].map(shuffle);
-
-  const ticketA = createEmptyGrid();
-  const ticketB = createEmptyGrid();
-
-  // mỗi cột chia đôi cho 2 ticket
-  columns.forEach((colNums, colIndex) => {
-    const half = Math.ceil(colNums.length / 2);
-    const aNums = colNums.slice(0, half);
-    const bNums = colNums.slice(half);
-
-    distributeColumn(ticketA, colIndex, aNums);
-    distributeColumn(ticketB, colIndex, bNums);
-  });
-
-  return [
-    { id: colorKey + "-A", color: colorKey, grid: ticketA },
-    { id: colorKey + "-B", color: colorKey, grid: ticketB }
-  ];
-}
-
+// tạo 1 tờ hợp lệ
 function generateBoard() {
   let board = [];
-  let usedNumbers = new Set();
+  let used = new Set();
 
-  for(let i = 0; i < 9; i++){
+  for (let r = 0; r < 9; r++) {
     let row = Array(9).fill("");
-
     let cols = [];
-    while(cols.length < 5){
-      let c = Math.floor(Math.random() * 9);
-      if(!cols.includes(c)) cols.push(c);
+
+    // chọn đúng 5 cột
+    while (cols.length < 5) {
+      let c = rand(0, 8);
+      if (!cols.includes(c)) cols.push(c);
     }
 
     cols.forEach(c => {
+      let min = c * 10 + 1;
+      let max = (c === 8) ? 90 : c * 10 + 9;
       let num;
       do {
-        num = getNumberByColumn(c);
-      } while(usedNumbers.has(num));
-
-      usedNumbers.add(num);
+        num = rand(min, max);
+      } while (used.has(num));
+      used.add(num);
       row[c] = num;
     });
 
     board.push(row);
   }
-
   return board;
 }
 
-/* =========================
-   RENDER UI
-========================= */
+// so trùng 2 bảng
+function sameBoard(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
-const container = document.getElementById("ticketList");
-const selected = new Set();
+// tạo 20 tờ không trùng
+for (let i = 1; i <= TOTAL_BOARDS; i++) {
+  let b;
+  do {
+    b = generateBoard();
+  } while (Object.values(boards).some(x => sameBoard(x, b)));
+  boards[i] = b;
+}
 
-COLORS.forEach(color => {
-  const pair = generatePair(color.key);
+// dropdown
+const select = document.getElementById("boardSelect");
+for (let i = 1; i <= TOTAL_BOARDS; i++) {
+  let opt = document.createElement("option");
+  opt.value = i;
+  opt.text = "Tờ " + i;
+  select.appendChild(opt);
+}
 
-  pair.forEach(ticket => {
-    const div = document.createElement("div");
-    div.className = `ticket ${color.bg} text-black`;
+// hiển thị bảng
+function loadBoard(id) {
+  const table = document.getElementById("board");
+  table.innerHTML = "";
+  table.style.background = colors[id - 1];
 
-    div.innerHTML = `
-      <div class="font-extrabold text-lg mb-1">
-        ${color.label} – ${ticket.id.slice(-1)}
-      </div>
-      <div class="ticket-grid bg-white p-2 rounded-lg">
-        ${ticket.grid.flat().map(v =>
-          v === null
-            ? `<div class="cell empty"></div>`
-            : `<div class="cell">${v}</div>`
-        ).join("")}
-      </div>
-    `;
-
-    div.onclick = () => {
-      if (selected.size >= 1) return;
-
-      selected.add(ticket.id);
-      div.classList.add("ring-4","ring-black");
-
-      document.querySelectorAll(".ticket").forEach(t => {
-        if (t !== div) t.classList.add("disabled");
-      });
-
-      alert("Bạn đã chọn ticket: " + ticket.id);
-    };
-
-    container.appendChild(div);
+  boards[id].forEach(row => {
+    let tr = document.createElement("tr");
+    row.forEach(cell => {
+      let td = document.createElement("td");
+      td.textContent = cell;
+      td.onclick = () => td.classList.toggle("marked");
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
   });
-});
+}
+
+select.onchange = () => loadBoard(select.value);
+loadBoard(1);
 </script>
 
 </body>
