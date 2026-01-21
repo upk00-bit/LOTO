@@ -44,104 +44,128 @@ select {
 <table id="board"></table>
 
 <script>
-const TOTAL = 20;
-const STORAGE_KEY = "LotoBoardsV1";
-
-const colors = [
-  "#f44336","#e91e63","#9c27b0","#3f51b5","#2196f3",
-  "#009688","#4caf50","#8bc34a","#ff9800","#ff5722",
-  "#795548","#607d8b","#673ab7","#00bcd4","#cddc39",
-  "#ffc107","#ff7043","#81c784","#64b5f6","#ba68c8"
+/* ================== CONFIG ================== */
+const COLORS = [
+  "#f97316", "#facc15", "#ec4899", "#ef4444", "#22c55e",
+  "#3b82f6", "#92400e", "#8b5cf6", "#14b8a6", "#64748b",
+  "#a855f7", "#fb7185", "#84cc16", "#06b6d4", "#f59e0b",
+  "#6366f1", "#dc2626", "#16a34a", "#9333ea", "#0ea5e9"
 ];
 
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+const BOARD_KEY = "LOTO_20_BOARDS";
+const LOCK_KEY  = "LOTO_LOCKED_TICKETS";
+const PLAYER_KEY = "LOTO_PLAYER_BOARD";
+
+/* ================== LOAD DATA ================== */
+let boards = JSON.parse(localStorage.getItem(BOARD_KEY));
+let lockedBoards = JSON.parse(localStorage.getItem(LOCK_KEY)) || [];
+let myBoard = localStorage.getItem(PLAYER_KEY);
+
+/* ================== UTIL ================== */
+function getColRange(col) {
+  if (col === 8) return [80, 90];
+  return [col * 10 + 1, col * 10 + 9];
 }
 
-/* TẠO 1 TỜ HỢP LỆ */
-function generateBoard() {
-  let board = [];
-  let used = new Set();
+/* ================== GENERATE ================== */
+function generateBoards() {
+  let result = [];
 
-  for (let r = 0; r < 9; r++) {
-    let row = Array(9).fill("");
-    let cols = [];
+  for (let b = 0; b < 20; b++) {
+    let board = [];
 
-    while (cols.length < 5) {
-      let c = rand(0, 8);
-      if (!cols.includes(c)) cols.push(c);
+    for (let r = 0; r < 9; r++) {
+      let row = Array(9).fill("");
+      let cols = [];
+
+      while (cols.length < 5) {
+        let c = Math.floor(Math.random() * 9);
+        if (!cols.includes(c)) cols.push(c);
+      }
+
+      cols.forEach(c => {
+        const [min, max] = getColRange(c);
+        row[c] = Math.floor(Math.random() * (max - min + 1)) + min;
+      });
+
+      board.push(row);
     }
 
-    cols.forEach(c => {
-      let min = c * 10 + 1;
-      let max = (c === 8) ? 90 : c * 10 + 9;
-      let num;
-      do {
-        num = rand(min, max);
-      } while (used.has(num));
-      used.add(num);
-      row[c] = num;
-    });
-
-    board.push(row);
-  }
-  return board;
-}
-
-function sameBoard(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-/* LẤY HOẶC TẠO 20 TỜ */
-function loadBoards() {
-  let data = localStorage.getItem(STORAGE_KEY);
-  if (data) return JSON.parse(data);
-
-  let boards = {};
-  for (let i = 1; i <= TOTAL; i++) {
-    let b;
-    do {
-      b = generateBoard();
-    } while (Object.values(boards).some(x => sameBoard(x, b)));
-    boards[i] = b;
+    result.push(board);
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
-  return boards;
+  return result;
 }
 
-const boards = loadBoards();
+/* ================== INIT ================== */
+if (!boards) {
+  boards = generateBoards();
+  localStorage.setItem(BOARD_KEY, JSON.stringify(boards));
+}
 
-/* DROPDOWN */
+/* ================== UI ================== */
 const select = document.getElementById("boardSelect");
-for (let i = 1; i <= TOTAL; i++) {
+const table = document.getElementById("board");
+
+/* build select */
+boards.forEach((_, i) => {
   let opt = document.createElement("option");
   opt.value = i;
-  opt.text = "Tờ " + i;
+  opt.text = `Tờ số ${i + 1}`;
+
+  if (lockedBoards.includes(i) && myBoard != i) {
+    opt.disabled = true;
+    opt.text += " 🔒";
+  }
+
   select.appendChild(opt);
-}
+});
 
-/* HIỂN THỊ */
-function loadBoard(id) {
-  const table = document.getElementById("board");
+/* ================== SELECT BOARD ================== */
+select.onchange = () => {
+  const index = select.value;
+
+  if (lockedBoards.includes(Number(index)) && myBoard != index) {
+    alert("❌ Tờ này đã có người chọn");
+    return;
+  }
+
+  /* lock board */
+  if (!lockedBoards.includes(Number(index))) {
+    lockedBoards.push(Number(index));
+    localStorage.setItem(LOCK_KEY, JSON.stringify(lockedBoards));
+  }
+
+  localStorage.setItem(PLAYER_KEY, index);
+  loadBoard(index);
+};
+
+/* ================== LOAD BOARD ================== */
+function loadBoard(index) {
   table.innerHTML = "";
-  table.style.borderColor = colors[id - 1];
+  table.style.borderColor = COLORS[index];
+  select.disabled = true;
 
-  boards[id].forEach(row => {
+  boards[index].forEach(row => {
     let tr = document.createElement("tr");
+
     row.forEach(cell => {
       let td = document.createElement("td");
       td.textContent = cell;
-      td.style.borderColor = colors[id - 1];
+      td.style.borderColor = COLORS[index];
       td.onclick = () => td.classList.toggle("marked");
       tr.appendChild(td);
     });
+
     table.appendChild(tr);
   });
 }
 
-select.onchange = () => loadBoard(select.value);
-loadBoard(1);
+/* ================== AUTO LOAD MY BOARD ================== */
+if (myBoard !== null) {
+  select.value = myBoard;
+  loadBoard(myBoard);
+}
 </script>
 
 </body>
