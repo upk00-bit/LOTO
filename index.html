@@ -14,12 +14,13 @@ table {
 }
 
 td {
-  width: 45px;
-  height: 45px;
-  border: 2px solid black; /* sẽ đổi màu bằng JS */
-  font-weight: bold;
-  text-align: center;
-  cursor: pointer;
+  height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
   background: white;
 }
 
@@ -37,7 +38,7 @@ select {
 
 <body>
 
-<h2>Chọn tờ lô tô</h2>
+<h2>🎟️ Chọn Ticket</h2>
 <select id="boardSelect"></select>
 
 <table id="board"></table>
