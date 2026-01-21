@@ -43,14 +43,14 @@
 
 <h1 class="text-3xl font-extrabold mb-2 text-center">🎟️ Chọn Ticket Lô Tô</h1>
 <p class="text-center text-gray-500 mb-6">
-  16 tờ • 8 màu • Bù trừ 1–90
+  16 tờ • 8 màu • Bù trừ chuẩn 1–90
 </p>
 
 <div id="ticketList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto"></div>
 
 <script>
 /* =========================
-   CẤU HÌNH
+   CONFIG
 ========================= */
 
 const COLORS = [
@@ -64,57 +64,69 @@ const COLORS = [
   { key: "tim", label: "Tím", bg: "bg-purple-400" }
 ];
 
-/* =========================
-   TIỆN ÍCH
-========================= */
-
 function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
 /* =========================
-   TẠO 2 TICKET BÙ TRỪ
+   SINH 2 TICKET BÙ TRỪ
 ========================= */
 
 function generatePair(colorKey) {
-  const numbers = shuffle(
-    Array.from({ length: 90 }, (_, i) => i + 1)
-  );
 
-  const A = numbers.slice(0, 45);
-  const B = numbers.slice(45);
+  // 9 cột số chuẩn
+  const columns = [
+    range(1,9),
+    range(10,19),
+    range(20,29),
+    range(30,39),
+    range(40,49),
+    range(50,59),
+    range(60,69),
+    range(70,79),
+    range(80,90)
+  ].map(shuffle);
+
+  const ticketA = createEmptyGrid();
+  const ticketB = createEmptyGrid();
+
+  // mỗi cột chia đôi cho 2 ticket
+  columns.forEach((colNums, colIndex) => {
+    const half = Math.ceil(colNums.length / 2);
+    const aNums = colNums.slice(0, half);
+    const bNums = colNums.slice(half);
+
+    distributeColumn(ticketA, colIndex, aNums);
+    distributeColumn(ticketB, colIndex, bNums);
+  });
 
   return [
-    createTicket(colorKey, "A", A),
-    createTicket(colorKey, "B", B)
+    { id: colorKey + "-A", color: colorKey, grid: ticketA },
+    { id: colorKey + "-B", color: colorKey, grid: ticketB }
   ];
 }
 
-function createTicket(colorKey, suffix, nums) {
-  const grid = Array.from({ length: 9 }, () => Array(9).fill(null));
+function range(min, max) {
+  return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+}
 
-  // chia số theo cột
-  const cols = Array.from({ length: 9 }, () => []);
-  nums.forEach(n => {
-    const col = n === 90 ? 8 : Math.floor(n / 10);
-    cols[col].push(n);
-  });
+function createEmptyGrid() {
+  return Array.from({ length: 9 }, () => Array(9).fill(null));
+}
 
-  // mỗi hàng 5 số
-  for (let r = 0; r < 9; r++) {
-    const chosenCols = shuffle([...Array(9).keys()]).slice(0, 5);
-    chosenCols.forEach(c => {
-      if (cols[c].length) {
-        grid[r][c] = cols[c].pop();
+/* phân số vào cột, đảm bảo mỗi hàng tối đa 5 số */
+function distributeColumn(grid, colIndex, nums) {
+  const rows = shuffle([...Array(9).keys()]);
+
+  nums.forEach(num => {
+    for (let r of rows) {
+      const count = grid[r].filter(v => v !== null).length;
+      if (count < 5 && grid[r][colIndex] === null) {
+        grid[r][colIndex] = num;
+        break;
       }
-    });
-  }
-
-  return {
-    id: `${colorKey}-${suffix}`,
-    color: colorKey,
-    grid
-  };
+    }
+  });
 }
 
 /* =========================
@@ -122,7 +134,7 @@ function createTicket(colorKey, suffix, nums) {
 ========================= */
 
 const container = document.getElementById("ticketList");
-const selectedTickets = new Set();
+const selected = new Set();
 
 COLORS.forEach(color => {
   const pair = generatePair(color.key);
@@ -145,12 +157,11 @@ COLORS.forEach(color => {
     `;
 
     div.onclick = () => {
-      if (selectedTickets.size >= 1) return;
+      if (selected.size >= 1) return;
 
-      selectedTickets.add(ticket.id);
+      selected.add(ticket.id);
       div.classList.add("ring-4","ring-black");
 
-      // khóa các ticket khác
       document.querySelectorAll(".ticket").forEach(t => {
         if (t !== div) t.classList.add("disabled");
       });
