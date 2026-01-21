@@ -43,7 +43,7 @@
 
 <h1 class="text-3xl font-extrabold mb-2 text-center">🎟️ Chọn Ticket Lô Tô</h1>
 <p class="text-center text-gray-500 mb-6">
-  16 tờ • 8 màu • Bù trừ chuẩn 1–90
+  16 tờ • 8 màu • 
 </p>
 
 <div id="ticketList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto"></div>
@@ -106,27 +106,33 @@ function generatePair(colorKey) {
   ];
 }
 
-function range(min, max) {
-  return Array.from({ length: max - min + 1 }, (_, i) => min + i);
-}
+function generateBoard() {
+  let board = [];
+  let usedNumbers = new Set();
 
-function createEmptyGrid() {
-  return Array.from({ length: 9 }, () => Array(9).fill(null));
-}
+  for(let i = 0; i < 9; i++){
+    let row = Array(9).fill("");
 
-/* phân số vào cột, đảm bảo mỗi hàng tối đa 5 số */
-function distributeColumn(grid, colIndex, nums) {
-  const rows = shuffle([...Array(9).keys()]);
-
-  nums.forEach(num => {
-    for (let r of rows) {
-      const count = grid[r].filter(v => v !== null).length;
-      if (count < 5 && grid[r][colIndex] === null) {
-        grid[r][colIndex] = num;
-        break;
-      }
+    let cols = [];
+    while(cols.length < 5){
+      let c = Math.floor(Math.random() * 9);
+      if(!cols.includes(c)) cols.push(c);
     }
-  });
+
+    cols.forEach(c => {
+      let num;
+      do {
+        num = getNumberByColumn(c);
+      } while(usedNumbers.has(num));
+
+      usedNumbers.add(num);
+      row[c] = num;
+    });
+
+    board.push(row);
+  }
+
+  return board;
 }
 
 /* =========================
