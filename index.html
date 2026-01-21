@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chọn Ticket Lô Tô</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    .ticket-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 4px;
+    }
+    .cell {
+      height: 32px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background: #e5e7eb;
+    }
+    .cell.empty {
+      background: transparent;
+    }
+    .ticket {
+      border-radius: 14px;
+      padding: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .ticket:hover {
+      transform: scale(1.03);
+    }
+    .ticket.disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 p-6">
+
+<h1 class="text-3xl font-extrabold mb-2 text-center">🎟️ Chọn Ticket Lô Tô</h1>
+<p class="text-center text-gray-500 mb-6">
+  16 tờ • 8 màu • Bù trừ 1–90
+</p>
+
+<div id="ticketList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto"></div>
+
+<script>
+/* =========================
+   CẤU HÌNH
+========================= */
+
+const COLORS = [
+  { key: "cam", label: "Cam", bg: "bg-orange-400" },
+  { key: "vang", label: "Vàng", bg: "bg-yellow-300" },
+  { key: "hong", label: "Hồng", bg: "bg-pink-400" },
+  { key: "do", label: "Đỏ", bg: "bg-red-500" },
+  { key: "xanhla", label: "Xanh lá", bg: "bg-green-400" },
+  { key: "xanhduong", label: "Xanh dương", bg: "bg-blue-400" },
+  { key: "nau", label: "Nâu", bg: "bg-amber-700" },
+  { key: "tim", label: "Tím", bg: "bg-purple-400" }
+];
+
+/* =========================
+   TIỆN ÍCH
+========================= */
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+/* =========================
+   TẠO 2 TICKET BÙ TRỪ
+========================= */
+
+function generatePair(colorKey) {
+  const numbers = shuffle(
+    Array.from({ length: 90 }, (_, i) => i + 1)
+  );
+
+  const A = numbers.slice(0, 45);
+  const B = numbers.slice(45);
+
+  return [
+    createTicket(colorKey, "A", A),
+    createTicket(colorKey, "B", B)
+  ];
+}
+
+function createTicket(colorKey, suffix, nums) {
+  const grid = Array.from({ length: 9 }, () => Array(9).fill(null));
+
+  // chia số theo cột
+  const cols = Array.from({ length: 9 }, () => []);
+  nums.forEach(n => {
+    const col = n === 90 ? 8 : Math.floor(n / 10);
+    cols[col].push(n);
+  });
+
+  // mỗi hàng 5 số
+  for (let r = 0; r < 9; r++) {
+    const chosenCols = shuffle([...Array(9).keys()]).slice(0, 5);
+    chosenCols.forEach(c => {
+      if (cols[c].length) {
+        grid[r][c] = cols[c].pop();
+      }
+    });
+  }
+
+  return {
+    id: `${colorKey}-${suffix}`,
+    color: colorKey,
+    grid
+  };
+}
+
+/* =========================
+   RENDER UI
+========================= */
+
+const container = document.getElementById("ticketList");
+const selectedTickets = new Set();
+
+COLORS.forEach(color => {
+  const pair = generatePair(color.key);
+
+  pair.forEach(ticket => {
+    const div = document.createElement("div");
+    div.className = `ticket ${color.bg} text-black`;
+
+    div.innerHTML = `
+      <div class="font-extrabold text-lg mb-1">
+        ${color.label} – ${ticket.id.slice(-1)}
+      </div>
+      <div class="ticket-grid bg-white p-2 rounded-lg">
+        ${ticket.grid.flat().map(v =>
+          v === null
+            ? `<div class="cell empty"></div>`
+            : `<div class="cell">${v}</div>`
+        ).join("")}
+      </div>
+    `;
+
+    div.onclick = () => {
+      if (selectedTickets.size >= 1) return;
+
+      selectedTickets.add(ticket.id);
+      div.classList.add("ring-4","ring-black");
+
+      // khóa các ticket khác
+      document.querySelectorAll(".ticket").forEach(t => {
+        if (t !== div) t.classList.add("disabled");
+      });
+
+      alert("Bạn đã chọn ticket: " + ticket.id);
+    };
+
+    container.appendChild(div);
+  });
+});
+</script>
+
+</body>
+</html>
