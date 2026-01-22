@@ -2,12 +2,12 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Lô tô 20 tờ</title>
+<title>Lô tô chuẩn</title>
 
 <style>
 body {
-  font-family: Arial, sans-serif;
-  background: #f5f5f5;
+  font-family: Arial;
+  background: #f4f4f4;
   text-align: center;
 }
 
@@ -19,9 +19,9 @@ body {
 }
 
 .board {
-  border: 4px solid;
+  background: #fff;
   padding: 5px;
-  background: white;
+  border: 4px solid;
 }
 
 table {
@@ -32,13 +32,12 @@ td {
   width: 38px;
   height: 38px;
   border: 1px solid #333;
-  text-align: center;
   font-weight: bold;
   cursor: pointer;
 }
 
 td.empty {
-  background: #eee;
+  background: #e5e5e5;
   cursor: default;
 }
 
@@ -50,12 +49,10 @@ td.marked {
 
 <body>
 
-<h1>MỜI CHỌN VÉ</h1>
-
+<h2>MỜI CHỌN VÉ</h2>
 <div class="boards" id="boards"></div>
 
 <script>
-/* ================= CONFIG ================= */
 const COLORS = [
   "#ef4444","#f97316","#eab308","#22c55e","#14b8a6",
   "#3b82f6","#6366f1","#8b5cf6","#ec4899","#f43f5e",
@@ -63,68 +60,70 @@ const COLORS = [
   "#dc2626","#16a34a","#9333ea","#0ea5e9","#64748b"
 ];
 
-const COLUMN_RANGES = [
+const COL_RANGES = [
   [1,9],[10,19],[20,29],[30,39],[40,49],
   [50,59],[60,69],[70,79],[80,90]
 ];
 
-/* ================= UTIL ================= */
 function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
-/* ================= GENERATE 1 TICKET ================= */
+/* ================= CORE LOGIC ================= */
 function generateTicket() {
-  // mỗi cột 4 hoặc 5 số → tổng 45
-  let colCounts = Array(9).fill(4);
-  shuffle([...Array(9).keys()]).slice(0,6).forEach(i => colCounts[i]++);
+  // 1️⃣ Khởi tạo bảng rỗng
+  const board = Array.from({ length: 9 }, () => Array(9).fill(null));
 
-  const colNumbers = colCounts.map((count, c) => {
-    const [min,max] = COLUMN_RANGES[c];
+  // 2️⃣ Mỗi hàng chọn đúng 5 cột
+  const rowCols = [];
+  for (let r = 0; r < 9; r++) {
+    rowCols[r] = shuffle([0,1,2,3,4,5,6,7,8]).slice(0,5);
+  }
+
+  // 3️⃣ Đếm số ô mỗi cột
+  const colCounts = Array(9).fill(0);
+  rowCols.forEach(cols => cols.forEach(c => colCounts[c]++));
+
+  // ❗ đảm bảo mỗi cột ≤ 5
+  if (Math.max(...colCounts) > 5) return generateTicket();
+
+  // 4️⃣ Tạo pool số cho từng cột
+  const colPools = COL_RANGES.map(([min,max],c)=>{
     const nums = [];
-    while (nums.length < count) {
+    while (nums.length < colCounts[c]) {
       const n = Math.floor(Math.random()*(max-min+1))+min;
       if (!nums.includes(n)) nums.push(n);
     }
     return nums.sort((a,b)=>a-b);
   });
 
-  const grid = Array.from({length:9},()=>Array(9).fill(null));
-  const rowCount = Array(9).fill(0);
-
-  colNumbers.forEach((nums,c)=>{
-    nums.forEach(num=>{
-      const rows = rowCount
-        .map((v,i)=>v<5?i:-1)
-        .filter(i=>i!==-1);
-
-      const r = rows[Math.floor(Math.random()*rows.length)];
-      grid[r][c] = num;
-      rowCount[r]++;
+  // 5️⃣ Gán số vào đúng vị trí
+  for (let r = 0; r < 9; r++) {
+    rowCols[r].forEach(c => {
+      board[r][c] = colPools[c].pop();
     });
-  });
+  }
 
-  return grid;
+  return board;
 }
 
 /* ================= RENDER ================= */
 const boardsDiv = document.getElementById("boards");
 
 for (let i = 0; i < 20; i++) {
-  const boardData = generateTicket();
-  const boardDiv = document.createElement("div");
-  boardDiv.className = "board";
-  boardDiv.style.borderColor = COLORS[i];
+  const ticket = generateTicket();
+  const wrap = document.createElement("div");
+  wrap.className = "board";
+  wrap.style.borderColor = COLORS[i];
 
   const table = document.createElement("table");
 
-  boardData.forEach(row=>{
+  ticket.forEach(row=>{
     const tr = document.createElement("tr");
     row.forEach(cell=>{
       const td = document.createElement("td");
       if (cell === null) {
         td.className = "empty";
-        td.textContent = "";
       } else {
         td.textContent = cell;
         td.onclick = () => td.classList.toggle("marked");
@@ -134,8 +133,8 @@ for (let i = 0; i < 20; i++) {
     table.appendChild(tr);
   });
 
-  boardDiv.appendChild(table);
-  boardsDiv.appendChild(boardDiv);
+  wrap.appendChild(table);
+  boardsDiv.appendChild(wrap);
 }
 </script>
 
