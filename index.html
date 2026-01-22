@@ -1,104 +1,141 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8" />
-<title>Mời chọn vé</title>
+<meta charset="UTF-8">
+<title>Lô tô 20 tờ</title>
 
 <style>
 body {
   font-family: Arial, sans-serif;
-  background: #f4f4f4;
-  padding: 20px;
+  background: #f5f5f5;
+  text-align: center;
 }
 
-.wrapper {
+.boards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(4, auto);
   gap: 20px;
+  justify-content: center;
 }
 
-.ticket {
+.board {
+  border: 4px solid;
+  padding: 5px;
   background: white;
-  padding: 10px;
-  border: 2px solid #222;
 }
 
-.ticket-title {
+table {
+  border-collapse: collapse;
+}
+
+td {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #333;
   text-align: center;
   font-weight: bold;
-  margin-bottom: 6px;
+  cursor: pointer;
 }
 
-.loto-grid {
-  display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  gap: 3px;
-}
-
-.number-cell {
-  height: 36px;
-  border: 1px solid #999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.empty {
+td.empty {
   background: #eee;
+  cursor: default;
+}
+
+td.marked {
+  background: #ffeb3b;
 }
 </style>
 </head>
 
 <body>
 
-<h2>MỜI CHỌN VÉ</h2>
-<div class="wrapper" id="wrapper"></div>
+<h1>🎲 LÔ TÔ 20 TỜ 🎲</h1>
+
+<div class="boards" id="boards"></div>
 
 <script>
-const COLUMN_RANGES = [
-  [1, 9], [10, 19], [20, 29], [30, 39], [40, 49],
-  [50, 59], [60, 69], [70, 79], [80, 90]
+/* ================= CONFIG ================= */
+const COLORS = [
+  "#ef4444","#f97316","#eab308","#22c55e","#14b8a6",
+  "#3b82f6","#6366f1","#8b5cf6","#ec4899","#f43f5e",
+  "#10b981","#0ea5e9","#a855f7","#84cc16","#f59e0b",
+  "#dc2626","#16a34a","#9333ea","#0ea5e9","#64748b"
 ];
 
+const COLUMN_RANGES = [
+  [1,9],[10,19],[20,29],[30,39],[40,49],
+  [50,59],[60,69],[70,79],[80,90]
+];
+
+/* ================= UTIL ================= */
 function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
+/* ================= GENERATE 1 TICKET ================= */
 function generateTicket() {
-  // 1️⃣ Mỗi cột có 4 hoặc 5 số → tổng = 45
+  // mỗi cột 4 hoặc 5 số → tổng 45
   let colCounts = Array(9).fill(4);
-  shuffle([...Array(9).keys()]).slice(0, 6).forEach(i => colCounts[i]++);
+  shuffle([...Array(9).keys()]).slice(0,6).forEach(i => colCounts[i]++);
 
-  // 2️⃣ Tạo danh sách số cho từng cột
-  const colNumbers = colCounts.map((count, col) => {
-    const [min, max] = COLUMN_RANGES[col];
+  const colNumbers = colCounts.map((count, c) => {
+    const [min,max] = COLUMN_RANGES[c];
     const nums = [];
     while (nums.length < count) {
-      const n = Math.floor(Math.random() * (max - min + 1)) + min;
+      const n = Math.floor(Math.random()*(max-min+1))+min;
       if (!nums.includes(n)) nums.push(n);
     }
-    return nums.sort((a, b) => a - b);
+    return nums.sort((a,b)=>a-b);
   });
 
-  // 3️⃣ Khởi tạo grid rỗng
-  const grid = Array.from({ length: 9 }, () => Array(9).fill(null));
-  const rowCounts = Array(9).fill(0);
+  const grid = Array.from({length:9},()=>Array(9).fill(null));
+  const rowCount = Array(9).fill(0);
 
-  // 4️⃣ Phân số vào hàng (mỗi hàng đúng 5)
-  colNumbers.forEach((nums, col) => {
-    nums.forEach(num => {
-      const possibleRows = rowCounts
-        .map((c, i) => c < 5 ? i : -1)
-        .filter(i => i !== -1);
+  colNumbers.forEach((nums,c)=>{
+    nums.forEach(num=>{
+      const rows = rowCount
+        .map((v,i)=>v<5?i:-1)
+        .filter(i=>i!==-1);
 
-      const row = possibleRows[Math.floor(Math.random() * possibleRows.length)];
-      grid[row][col] = num;
-      rowCounts[row]++;
+      const r = rows[Math.floor(Math.random()*rows.length)];
+      grid[r][c] = num;
+      rowCount[r]++;
     });
   });
 
   return grid;
+}
+
+/* ================= RENDER ================= */
+const boardsDiv = document.getElementById("boards");
+
+for (let i = 0; i < 20; i++) {
+  const boardData = generateTicket();
+  const boardDiv = document.createElement("div");
+  boardDiv.className = "board";
+  boardDiv.style.borderColor = COLORS[i];
+
+  const table = document.createElement("table");
+
+  boardData.forEach(row=>{
+    const tr = document.createElement("tr");
+    row.forEach(cell=>{
+      const td = document.createElement("td");
+      if (cell === null) {
+        td.className = "empty";
+        td.textContent = "";
+      } else {
+        td.textContent = cell;
+        td.onclick = () => td.classList.toggle("marked");
+      }
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+
+  boardDiv.appendChild(table);
+  boardsDiv.appendChild(boardDiv);
 }
 </script>
 
