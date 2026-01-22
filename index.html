@@ -2,140 +2,121 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Lô tô chuẩn</title>
+<title>Lô Tô 9x9</title>
 
 <style>
 body {
-  font-family: Arial;
-  background: #f4f4f4;
+  font-family: Arial, sans-serif;
   text-align: center;
-}
-
-.boards {
-  display: grid;
-  grid-template-columns: repeat(4, auto);
-  gap: 20px;
-  justify-content: center;
-}
-
-.board {
-  background: #fff;
-  padding: 5px;
-  border: 4px solid;
+  background: #f5f5f5;
 }
 
 table {
   border-collapse: collapse;
+  margin: 20px auto;
+  border: 4px solid #333;
 }
 
 td {
-  width: 38px;
-  height: 38px;
-  border: 1px solid #333;
+  width: 50px;
+  height: 50px;
+  border: 2px solid #333;
   font-weight: bold;
+  font-size: 18px;
   cursor: pointer;
+  background: white;
 }
 
 td.empty {
-  background: #e5e5e5;
+  background: #eee;
   cursor: default;
 }
 
 td.marked {
-  background: #ffeb3b;
+  background: gold;
 }
 </style>
 </head>
 
 <body>
 
-<h2>MỜI CHỌN VÉ</h2>
-<div class="boards" id="boards"></div>
+<h2>🎫 TỜ LÔ TÔ 9×9</h2>
+
+<table id="board"></table>
 
 <script>
-const COLORS = [
-  "#ef4444","#f97316","#eab308","#22c55e","#14b8a6",
-  "#3b82f6","#6366f1","#8b5cf6","#ec4899","#f43f5e",
-  "#10b981","#0ea5e9","#a855f7","#84cc16","#f59e0b",
-  "#dc2626","#16a34a","#9333ea","#0ea5e9","#64748b"
-];
-
-const COL_RANGES = [
-  [1,9],[10,19],[20,29],[30,39],[40,49],
-  [50,59],[60,69],[70,79],[80,90]
-];
-
+/* ================== UTIL ================== */
 function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
+  for (let i = arr.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
-/* ================= CORE LOGIC ================= */
-function generateTicket() {
-  // 1️⃣ Khởi tạo bảng rỗng
-  const board = Array.from({ length: 9 }, () => Array(9).fill(null));
+/* ================== GENERATE ONE BOARD ================== */
+function generateBoard() {
+  let grid = Array.from({ length: 9 }, () => Array(9).fill(null));
+  let colCount = Array(9).fill(0);
 
-  // 2️⃣ Mỗi hàng chọn đúng 5 cột
-  const rowCols = [];
+  // chọn đúng 5 cột mỗi hàng
   for (let r = 0; r < 9; r++) {
-    rowCols[r] = shuffle([0,1,2,3,4,5,6,7,8]).slice(0,5);
-  }
+    let cols = shuffle([0,1,2,3,4,5,6,7,8])
+      .filter(c => colCount[c] < 8)
+      .slice(0,5);
 
-  // 3️⃣ Đếm số ô mỗi cột
-  const colCounts = Array(9).fill(0);
-  rowCols.forEach(cols => cols.forEach(c => colCounts[c]++));
-
-  // ❗ đảm bảo mỗi cột ≤ 5
-  if (Math.max(...colCounts) > 5) return generateTicket();
-
-  // 4️⃣ Tạo pool số cho từng cột
-  const colPools = COL_RANGES.map(([min,max],c)=>{
-    const nums = [];
-    while (nums.length < colCounts[c]) {
-      const n = Math.floor(Math.random()*(max-min+1))+min;
-      if (!nums.includes(n)) nums.push(n);
-    }
-    return nums.sort((a,b)=>a-b);
-  });
-
-  // 5️⃣ Gán số vào đúng vị trí
-  for (let r = 0; r < 9; r++) {
-    rowCols[r].forEach(c => {
-      board[r][c] = colPools[c].pop();
+    cols.forEach(c => {
+      grid[r][c] = "X";
+      colCount[c]++;
     });
   }
 
-  return board;
-}
+  // pool số theo cột
+  let pools = [];
+  for (let c = 0; c < 9; c++) {
+    let min = c === 8 ? 80 : c * 10 + 1;
+    let max = c === 8 ? 90 : c * 10 + 9;
 
-/* ================= RENDER ================= */
-const boardsDiv = document.getElementById("boards");
+    pools[c] = shuffle(
+      Array.from({ length: max - min + 1 }, (_, i) => i + min)
+    );
+  }
 
-for (let i = 0; i < 20; i++) {
-  const ticket = generateTicket();
-  const wrap = document.createElement("div");
-  wrap.className = "board";
-  wrap.style.borderColor = COLORS[i];
-
-  const table = document.createElement("table");
-
-  ticket.forEach(row=>{
-    const tr = document.createElement("tr");
-    row.forEach(cell=>{
-      const td = document.createElement("td");
-      if (cell === null) {
-        td.className = "empty";
-      } else {
-        td.textContent = cell;
-        td.onclick = () => td.classList.toggle("marked");
+  // gán số
+  for (let c = 0; c < 9; c++) {
+    for (let r = 0; r < 9; r++) {
+      if (grid[r][c] === "X") {
+        grid[r][c] = pools[c].pop();
       }
-      tr.appendChild(td);
-    });
-    table.appendChild(tr);
+    }
+  }
+
+  return grid;
+}
+
+/* ================== RENDER ================== */
+const board = generateBoard();
+const table = document.getElementById("board");
+
+board.forEach(row => {
+  let tr = document.createElement("tr");
+
+  row.forEach(cell => {
+    let td = document.createElement("td");
+
+    if (cell === null) {
+      td.className = "empty";
+      td.textContent = "";
+    } else {
+      td.textContent = cell;
+      td.onclick = () => td.classList.toggle("marked");
+    }
+
+    tr.appendChild(td);
   });
 
-  wrap.appendChild(table);
-  boardsDiv.appendChild(wrap);
-}
+  table.appendChild(tr);
+});
 </script>
 
 </body>
