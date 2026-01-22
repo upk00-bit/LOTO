@@ -57,87 +57,48 @@ body {
 
 <script>
 const COLUMN_RANGES = [
-  [1, 9],
-  [10, 19],
-  [20, 29],
-  [30, 39],
-  [40, 49],
-  [50, 59],
-  [60, 69],
-  [70, 79],
-  [80, 90]
+  [1, 9], [10, 19], [20, 29], [30, 39], [40, 49],
+  [50, 59], [60, 69], [70, 79], [80, 90]
 ];
 
-function randomFromRange(min, max, used) {
-  let n;
-  do {
-    n = Math.floor(Math.random() * (max - min + 1)) + min;
-  } while (used.has(n));
-  used.add(n);
-  return n;
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
 }
 
 function generateTicket() {
-  const usedNumbers = new Set();
+  // 1️⃣ Mỗi cột có 4 hoặc 5 số → tổng = 45
+  let colCounts = Array(9).fill(4);
+  shuffle([...Array(9).keys()]).slice(0, 6).forEach(i => colCounts[i]++);
+
+  // 2️⃣ Tạo danh sách số cho từng cột
+  const colNumbers = colCounts.map((count, col) => {
+    const [min, max] = COLUMN_RANGES[col];
+    const nums = [];
+    while (nums.length < count) {
+      const n = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (!nums.includes(n)) nums.push(n);
+    }
+    return nums.sort((a, b) => a - b);
+  });
+
+  // 3️⃣ Khởi tạo grid rỗng
   const grid = Array.from({ length: 9 }, () => Array(9).fill(null));
+  const rowCounts = Array(9).fill(0);
 
-  for (let row = 0; row < 9; row++) {
-    const cols = [...Array(9).keys()]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 5);
+  // 4️⃣ Phân số vào hàng (mỗi hàng đúng 5)
+  colNumbers.forEach((nums, col) => {
+    nums.forEach(num => {
+      const possibleRows = rowCounts
+        .map((c, i) => c < 5 ? i : -1)
+        .filter(i => i !== -1);
 
-    cols.forEach(col => {
-      const [min, max] = COLUMN_RANGES[col];
-      grid[row][col] = randomFromRange(min, max, usedNumbers);
-    });
-  }
-
-  return grid;
-}
-
-function ticketHash(grid) {
-  return grid.flat().join("-");
-}
-
-function renderTicket(grid, index) {
-  const ticket = document.createElement("div");
-  ticket.className = "ticket";
-
-  ticket.innerHTML = `<div class="ticket-title">TỜ ${index + 1}</div>`;
-  const lotoGrid = document.createElement("div");
-  lotoGrid.className = "loto-grid";
-
-  grid.forEach(row => {
-    row.forEach(cell => {
-      const div = document.createElement("div");
-      div.className = "number-cell";
-      if (cell === null) {
-        div.classList.add("empty");
-        div.textContent = "";
-      } else {
-        div.textContent = cell.toString().padStart(2, "0");
-      }
-      lotoGrid.appendChild(div);
+      const row = possibleRows[Math.floor(Math.random() * possibleRows.length)];
+      grid[row][col] = num;
+      rowCounts[row]++;
     });
   });
 
-  ticket.appendChild(lotoGrid);
-  return ticket;
-}
-
-const wrapper = document.getElementById("wrapper");
-const hashes = new Set();
-let count = 0;
-
-while (count < 20) {
-  const ticket = generateTicket();
-  const hash = ticketHash(ticket);
-
-  if (!hashes.has(hash)) {
-    hashes.add(hash);
-    wrapper.appendChild(renderTicket(ticket, count));
-    count++;
-  }
+  return grid;
 }
 </script>
 
