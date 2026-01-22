@@ -1,204 +1,143 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>Loto</title>
+<meta charset="UTF-8" />
+<title>Mời chọn vé</title>
 
 <style>
 body {
-  font-family: Arial;
-  text-align: center;
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  padding: 20px;
 }
 
-table {
-  border-collapse: collapse;
-  margin: 15px auto;
-  border: 5px solid black;
+.wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
 }
 
-td {
-  width: 50px;
-  height: 50px;
-  border: 2px solid black;
+.ticket {
+  background: white;
+  padding: 10px;
+  border: 2px solid #222;
+}
+
+.ticket-title {
   text-align: center;
   font-weight: bold;
-  cursor: pointer;
+  margin-bottom: 6px;
 }
 
-.marked {
-  background: #ffeb3b;
+.loto-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 3px;
 }
 
-select {
-  font-size: 16px;
-  padding: 6px;
+.number-cell {
+  height: 36px;
+  border: 1px solid #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.empty {
+  background: #eee;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Chọn tờ lô tô</h2>
-<select id="boardSelect"></select>
-
-<table id="board"></table>
+<h2>🎯 20 TỜ LÔ TÔ</h2>
+<div class="wrapper" id="wrapper"></div>
 
 <script>
-/* ================== CONFIG ================== */
-const COLORS = [
-  "#f97316", "#facc15", "#ec4899", "#ef4444", "#22c55e",
-  "#3b82f6", "#92400e", "#8b5cf6", "#14b8a6", "#64748b",
-  "#a855f7", "#fb7185", "#84cc16", "#06b6d4", "#f59e0b",
-  "#6366f1", "#dc2626", "#16a34a", "#9333ea", "#0ea5e9"
+const COLUMN_RANGES = [
+  [1, 9],
+  [10, 19],
+  [20, 29],
+  [30, 39],
+  [40, 49],
+  [50, 59],
+  [60, 69],
+  [70, 79],
+  [80, 90]
 ];
 
-const BOARD_KEY = "LOTO_20_BOARDS";
-const LOCK_KEY  = "LOTO_LOCKED_TICKETS";
-const PLAYER_KEY = "LOTO_PLAYER_BOARD";
-
-/* ================== LOAD DATA ================== */
-let boards = JSON.parse(localStorage.getItem(BOARD_KEY));
-let lockedBoards = JSON.parse(localStorage.getItem(LOCK_KEY)) || [];
-let myBoard = localStorage.getItem(PLAYER_KEY);
-
-/* ================== UTIL ================== */
-function getColRange(col) {
-  if (col === 8) return [80, 90];
-  return [col * 10 + 1, col * 10 + 9];
+function randomFromRange(min, max, used) {
+  let n;
+  do {
+    n = Math.floor(Math.random() * (max - min + 1)) + min;
+  } while (used.has(n));
+  used.add(n);
+  return n;
 }
 
-/* ================== GENERATE ================== */
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
+function generateTicket() {
+  const usedNumbers = new Set();
+  const grid = Array.from({ length: 9 }, () => Array(9).fill(null));
 
-function generateOneBoard() {
-  // tạo pool số cho từng cột
-  const colPools = [];
+  for (let row = 0; row < 9; row++) {
+    const cols = [...Array(9).keys()]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 5);
 
-  for (let c = 0; c < 9; c++) {
-    let min = c === 8 ? 80 : c * 10 + 1;
-    let max = c === 8 ? 90 : c * 10 + 9;
-
-    let pool = [];
-    for (let n = min; n <= max; n++) pool.push(n);
-    colPools.push(shuffle(pool));
-  }
-
-  // khởi tạo bảng rỗng
-  let board = Array.from({ length: 9 }, () => Array(9).fill(""));
-
-  // mỗi hàng chọn đúng 5 cột
-  let rowCols = [];
-  for (let r = 0; r < 9; r++) {
-    rowCols[r] = shuffle([0,1,2,3,4,5,6,7,8]).slice(0,5);
-  }
-
-  // phân số theo cột
-  for (let c = 0; c < 9; c++) {
-    // các hàng có số ở cột này
-    let rows = rowCols
-      .map((cols, r) => cols.includes(c) ? r : null)
-      .filter(r => r !== null);
-
-    // mỗi cột tối đa 9 số, pool luôn đủ
-    rows.forEach(r => {
-      board[r][c] = colPools[c].pop();
+    cols.forEach(col => {
+      const [min, max] = COLUMN_RANGES[col];
+      grid[row][col] = randomFromRange(min, max, usedNumbers);
     });
   }
 
-  return board;
+  return grid;
 }
 
-function generateBoards() {
-  let boards = [];
-  let signatures = new Set();
-
-  while (boards.length < 20) {
-    let board = generateOneBoard();
-    let sig = JSON.stringify(board);
-
-    if (!signatures.has(sig)) {
-      signatures.add(sig);
-      boards.push(board);
-    }
-  }
-
-  return boards;
+function ticketHash(grid) {
+  return grid.flat().join("-");
 }
 
-/* ================== INIT ================== */
-if (!boards) {
-  boards = generateBoards();
-  localStorage.setItem(BOARD_KEY, JSON.stringify(boards));
-}
+function renderTicket(grid, index) {
+  const ticket = document.createElement("div");
+  ticket.className = "ticket";
 
-/* ================== UI ================== */
-const select = document.getElementById("boardSelect");
-const table = document.getElementById("board");
+  ticket.innerHTML = `<div class="ticket-title">TỜ ${index + 1}</div>`;
+  const lotoGrid = document.createElement("div");
+  lotoGrid.className = "loto-grid";
 
-/* build select */
-boards.forEach((_, i) => {
-  let opt = document.createElement("option");
-  opt.value = i;
-  opt.text = `Tờ số ${i + 1}`;
-
-  if (lockedBoards.includes(i) && myBoard != i) {
-    opt.disabled = true;
-    opt.text += " 🔒";
-  }
-
-  select.appendChild(opt);
-});
-
-/* ================== SELECT BOARD ================== */
-select.onchange = () => {
-  const index = select.value;
-
-  if (lockedBoards.includes(Number(index)) && myBoard != index) {
-    alert("❌ Tờ này đã có người chọn");
-    return;
-  }
-
-  /* lock board */
-  if (!lockedBoards.includes(Number(index))) {
-    lockedBoards.push(Number(index));
-    localStorage.setItem(LOCK_KEY, JSON.stringify(lockedBoards));
-  }
-
-  localStorage.setItem(PLAYER_KEY, index);
-  loadBoard(index);
-};
-
-/* ================== LOAD BOARD ================== */
-function loadBoard(index) {
-  table.innerHTML = "";
-  table.style.borderColor = COLORS[index];
-  select.disabled = true;
-
-  boards[index].forEach(row => {
-    let tr = document.createElement("tr");
-
+  grid.forEach(row => {
     row.forEach(cell => {
-      let td = document.createElement("td");
-      td.textContent = cell;
-      td.style.borderColor = COLORS[index];
-      td.onclick = () => td.classList.toggle("marked");
-      tr.appendChild(td);
+      const div = document.createElement("div");
+      div.className = "number-cell";
+      if (cell === null) {
+        div.classList.add("empty");
+        div.textContent = "";
+      } else {
+        div.textContent = cell.toString().padStart(2, "0");
+      }
+      lotoGrid.appendChild(div);
     });
-
-    table.appendChild(tr);
   });
+
+  ticket.appendChild(lotoGrid);
+  return ticket;
 }
 
-/* ================== AUTO LOAD MY BOARD ================== */
-if (myBoard !== null) {
-  select.value = myBoard;
-  loadBoard(myBoard);
+const wrapper = document.getElementById("wrapper");
+const hashes = new Set();
+let count = 0;
+
+while (count < 20) {
+  const ticket = generateTicket();
+  const hash = ticketHash(ticket);
+
+  if (!hashes.has(hash)) {
+    hashes.add(hash);
+    wrapper.appendChild(renderTicket(ticket, count));
+    count++;
+  }
 }
 </script>
 
