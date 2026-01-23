@@ -1,123 +1,66 @@
+
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-<meta charset="UTF-8">
-<title>Lô Tô 9x9</title>
-
-<style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background: #f5f5f5;
-}
-
-table {
-  border-collapse: collapse;
-  margin: 20px auto;
-  border: 4px solid #333;
-}
-
-td {
-  width: 50px;
-  height: 50px;
-  border: 2px solid #333;
-  font-weight: bold;
-  font-size: 18px;
-  cursor: pointer;
-  background: white;
-}
-
-td.empty {
-  background: #eee;
-  cursor: default;
-}
-
-td.marked {
-  background: gold;
-}
-</style>
-</head>
-
-<body>
-
-<h2>🎫 TỜ LÔ TÔ 9×9</h2>
-
-<table id="board"></table>
-
-<script>
-/* ================== UTIL ================== */
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-/* ================== GENERATE ONE BOARD ================== */
-function generateBoard() {
-  let grid = Array.from({ length: 9 }, () => Array(9).fill(null));
-  let colCount = Array(9).fill(0);
-
-  // chọn đúng 5 cột mỗi hàng
-  for (let r = 0; r < 9; r++) {
-    let cols = shuffle([0,1,2,3,4,5,6,7,8])
-      .filter(c => colCount[c] < 8)
-      .slice(0,5);
-
-    cols.forEach(c => {
-      grid[r][c] = "X";
-      colCount[c]++;
-    });
-  }
-
-  // pool số theo cột
-  let pools = [];
-  for (let c = 0; c < 9; c++) {
-    let min = c === 8 ? 80 : c * 10 + 1;
-    let max = c === 8 ? 90 : c * 10 + 9;
-
-    pools[c] = shuffle(
-      Array.from({ length: max - min + 1 }, (_, i) => i + min)
-    );
-  }
-
-  // gán số
-  for (let c = 0; c < 9; c++) {
-    for (let r = 0; r < 9; r++) {
-      if (grid[r][c] === "X") {
-        grid[r][c] = pools[c].pop();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VietLoto Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Bungee&display=swap');
+      
+      body {
+        font-family: 'Montserrat', sans-serif;
+        background: radial-gradient(circle at center, #1a1a2e 0%, #16213e 100%);
+        color: white;
+        min-height: 100vh;
       }
-    }
+
+      .loto-font {
+        font-family: 'Bungee', cursive;
+      }
+
+      .ticket-cell {
+        aspect-ratio: 1/1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease-in-out;
+      }
+
+      .glow-red {
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      @keyframes pulse-gold {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+      }
+
+      .winning-row {
+        animation: pulse-gold 1.5s infinite;
+        background-color: rgba(251, 191, 36, 0.3) !important;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
-
-  return grid;
 }
-
-/* ================== RENDER ================== */
-const board = generateBoard();
-const table = document.getElementById("board");
-
-board.forEach(row => {
-  let tr = document.createElement("tr");
-
-  row.forEach(cell => {
-    let td = document.createElement("td");
-
-    if (cell === null) {
-      td.className = "empty";
-      td.textContent = "";
-    } else {
-      td.textContent = cell;
-      td.onclick = () => td.classList.toggle("marked");
-    }
-
-    tr.appendChild(td);
-  });
-
-  table.appendChild(tr);
-});
 </script>
-
-</body>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
