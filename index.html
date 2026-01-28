@@ -1,65 +1,342 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VietLoto Master</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loto Online 9x9</title>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Bungee&display=swap');
-      
-      body {
-        font-family: 'Montserrat', sans-serif;
-        background: radial-gradient(circle at center, #1a1a2e 0%, #16213e 100%);
-        color: white;
-        min-height: 100vh;
-      }
+        /* --- CSS STYLES --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; text-align: center; }
+        .hidden { display: none !important; }
+        .btn { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; font-size: 16px; transition: 0.3s; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn:hover { opacity: 0.9; }
+        
+        /* Login & Lobby */
+        #login-screen, #lobby-screen { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { width: 90%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
 
-      .loto-font {
-        font-family: 'Bungee', cursive;
-      }
+        /* Game Layout */
+        #game-screen { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        
+        /* Left Panel: Info & Board */
+        .left-panel { flex: 1; min-width: 300px; text-align: left; }
+        .current-number { font-size: 80px; font-weight: bold; color: #d63384; text-align: center; background: #fff; border-radius: 10px; margin-bottom: 20px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .history-board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: white; padding: 10px; border-radius: 5px; }
+        .history-num { font-size: 12px; padding: 5px; text-align: center; border: 1px solid #eee; color: #ccc; }
+        .history-num.active { background-color: #007bff; color: white; font-weight: bold; }
 
-      .ticket-cell {
-        aspect-ratio: 1/1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease-in-out;
-      }
+        /* Center Panel: Ticket */
+        .ticket-panel { flex: 2; min-width: 340px; }
+        .ticket { border: 2px solid #333; background: white; padding: 5px; border-radius: 5px; user-select: none; }
+        .ticket-row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; margin-bottom: 2px; padding: 5px; border-radius: 4px; transition: background 0.3s; }
+        
+        /* Highlight Logic */
+        .ticket-row.highlight-red { background-color: #ffcccc; /* Đỏ nhạt khi đủ 4 số */ }
+        .ticket-row.highlight-gold { background-color: #ffd700; animation: blink 1s infinite; /* Vàng khi đủ 5 số */ }
 
-      .glow-red {
-        box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-      }
+        .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd; font-weight: bold; font-size: 18px; cursor: pointer; background: #fff; }
+        .cell.empty { background: #f9f9f9; cursor: default; }
+        .cell.marked { background-color: #28a745; color: white; border-color: #28a745; }
 
-      .glass {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
+        /* Chat */
+        .chat-panel { flex: 1; min-width: 250px; background: white; border-radius: 10px; padding: 10px; height: 500px; display: flex; flex-direction: column; }
+        #chat-messages { flex: 1; overflow-y: auto; border-bottom: 1px solid #eee; margin-bottom: 10px; text-align: left; padding: 5px; }
+        .msg { margin-bottom: 5px; font-size: 14px; }
+        .msg strong { color: #007bff; }
 
-      @keyframes pulse-gold {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
-        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
-      }
-
-      .winning-row {
-        animation: pulse-gold 1.5s infinite;
-        background-color: rgba(251, 191, 36, 0.3) !important;
-      }
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
-  }
-}
-</script>
 </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<body>
+
+    <div id="login-screen">
+        <h2>Loto Online</h2>
+        <input type="text" id="username" placeholder="Nhập tên của bạn">
+        <div>
+            <button class="btn btn-primary" onclick="login('host')">Tạo Phòng (Host)</button>
+            <button class="btn btn-success" onclick="login('player')">Tham Gia (Player)</button>
+        </div>
+    </div>
+
+    <div id="lobby-screen" class="hidden">
+        <h3>Chào, <span id="display-name"></span></h3>
+        <div id="host-controls" class="hidden">
+            <p>Mã phòng của bạn: <strong style="font-size: 24px; color: red;">1234</strong></p>
+            <p>Đang chờ người chơi...</p>
+            <button class="btn btn-primary" onclick="startGame()">Bắt đầu ván mới</button>
+        </div>
+        <div id="player-controls" class="hidden">
+            <input type="text" id="room-id" placeholder="Nhập mã phòng (VD: 1234)">
+            <button class="btn btn-success" onclick="joinRoom()">Vào phòng</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div class="left-panel">
+            <div style="margin-bottom: 5px;">Số vừa gọi:</div>
+            <div class="current-number" id="current-number">--</div>
+            
+            <div id="game-host-controls" class="hidden" style="margin-bottom: 15px; text-align: center;">
+                <button class="btn btn-danger" onclick="drawNumber()">🔴 Bốc Số</button>
+                <button class="btn btn-success" onclick="checkWinner()">🏆 Kiểm tra Kinh</button>
+                <br><br>
+                <button class="btn btn-primary" onclick="resetGame()">🔄 Ván mới (Giữ vé)</button>
+            </div>
+
+            <div style="margin-bottom: 5px;">Lịch sử số:</div>
+            <div class="history-board" id="history-board">
+                </div>
+        </div>
+
+        <div class="ticket-panel">
+            <h3>Vé Dò Số (ID: <span id="ticket-id">#01</span>)</h3>
+            <div class="ticket" id="my-ticket">
+                </div>
+        </div>
+
+        <div class="chat-panel">
+            <h4>Kênh Chat</h4>
+            <div id="chat-messages"></div>
+            <div style="display: flex;">
+                <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." style="margin-bottom: 0;">
+                <button class="btn btn-primary" onclick="sendMessage()">Gửi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH & TRẠNG THÁI GAME ---
+        let role = ''; // 'host' hoặc 'player'
+        let currentUser = '';
+        let currentTicket = []; // Lưu cấu trúc vé của người chơi
+        let calledNumbers = []; // Danh sách số đã gọi
+        let isGameActive = false;
+
+        // --- 1. HỆ THỐNG LOGIC VÉ SỐ (Ticket System) ---
+        
+        function generateTicketData() {
+            // Tạo vé 9 hàng, mỗi hàng 9 cột
+            // Quy tắc: Cột 1 (1-9), Cột 2 (10-19)... Cột 9 (80-90)
+            // Mỗi hàng chỉ được có 5 số, 4 ô trống.
+            let ticket = [];
+            for (let r = 0; r < 9; r++) {
+                let row = new Array(9).fill(null); // Mảng rỗng
+                let indices = [];
+                
+                // Chọn ngẫu nhiên 5 vị trí cột để điền số
+                while (indices.length < 5) {
+                    let idx = Math.floor(Math.random() * 9);
+                    if (!indices.includes(idx)) indices.push(idx);
+                }
+                indices.sort((a, b) => a - b);
+
+                // Điền số vào các vị trí đã chọn
+                indices.forEach(colIndex => {
+                    let min = colIndex * 10;
+                    let max = (colIndex * 10) + 9;
+                    if (colIndex === 0) min = 1; // Cột 1 từ 1-9
+                    if (colIndex === 8) max = 90; // Cột 9 từ 80-90
+
+                    // Random số trong khoảng, tránh trùng lặp trong cùng 1 cột (nâng cao cần check toàn vé)
+                    // Ở đây làm đơn giản: random
+                    let num = Math.floor(Math.random() * (max - min + 1)) + min;
+                    row[colIndex] = num;
+                });
+                ticket.push(row);
+            }
+            return ticket;
+        }
+
+        // --- 2. GIAO DIỆN & TƯƠNG TÁC (UI) ---
+
+        function renderHistoryBoard() {
+            const board = document.getElementById('history-board');
+            board.innerHTML = '';
+            for (let i = 1; i <= 90; i++) {
+                const div = document.createElement('div');
+                div.className = 'history-num';
+                div.id = `hist-${i}`;
+                div.innerText = i;
+                board.appendChild(div);
+            }
+        }
+
+        function renderTicket(ticketData) {
+            const container = document.getElementById('my-ticket');
+            container.innerHTML = '';
+            
+            ticketData.forEach((row, rowIndex) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'ticket-row';
+                rowDiv.id = `row-${rowIndex}`;
+
+                row.forEach((num) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (num === null) {
+                        cell.classList.add('empty');
+                    } else {
+                        cell.innerText = num;
+                        cell.dataset.value = num; // Lưu giá trị để check
+                        cell.onclick = function() { toggleMark(this, rowIndex); };
+                    }
+                    rowDiv.appendChild(cell);
+                });
+                container.appendChild(rowDiv);
+            });
+        }
+
+        // Logic đánh dấu số (Click vào vé)
+        function toggleMark(cell, rowIndex) {
+            if (!isGameActive) return; // Chỉ cho đánh dấu khi game đang chạy
+            if (cell.classList.contains('empty')) return;
+            
+            // Toggle class
+            cell.classList.toggle('marked');
+
+            // SAU KHI CLICK -> KIỂM TRA HÀNG ĐỂ HIGHLIGHT (AUTO SCAN)
+            scanRow(rowIndex);
+        }
+
+        // --- 3. LOGIC QUÉT VÉ TỰ ĐỘNG (Auto Scan Feature) ---
+        function scanRow(rowIndex) {
+            const rowEl = document.getElementById(`row-${rowIndex}`);
+            const markedCells = rowEl.querySelectorAll('.cell.marked').length;
+
+            // Xóa highlight cũ
+            rowEl.classList.remove('highlight-red', 'highlight-gold');
+
+            if (markedCells === 4) {
+                rowEl.classList.add('highlight-red'); // Đỏ nhạt: Sắp thắng
+            } else if (markedCells === 5) {
+                rowEl.classList.add('highlight-gold'); // Vàng: Đã Kinh (Thắng)
+                // Tự động báo về Host (Trong thực tế cần gửi socket)
+                addChatMessage("Hệ thống", `Hàng số ${rowIndex + 1} đã đủ 5 số! KINH!`);
+                alert("Chúc mừng! Bạn đã KINH (Đủ 5 số)!");
+            }
+        }
+
+        // --- 4. CHỨC NĂNG HOST & GAME FLOW ---
+
+        function drawNumber() {
+            if (calledNumbers.length >= 90) return;
+            
+            let num;
+            do {
+                num = Math.floor(Math.random() * 90) + 1;
+            } while (calledNumbers.includes(num));
+
+            calledNumbers.push(num);
+            updateGameState(num);
+        }
+
+        // Cập nhật trạng thái hiển thị (Mô phỏng realtime)
+        function updateGameState(newNum) {
+            // 1. Hiện số to
+            document.getElementById('current-number').innerText = newNum;
+            
+            // 2. Sáng lịch sử
+            const histEl = document.getElementById(`hist-${newNum}`);
+            if (histEl) histEl.classList.add('active');
+
+            // 3. TỰ ĐỘNG QUÉT VÉ NGƯỜI CHƠI (Hệ thống hỗ trợ dò)
+            // Tìm số trên vé người chơi, nếu có thì tự động báo (hoặc chờ người chơi click tùy luật)
+            // Ở đây ta giữ nguyên việc người chơi phải tự click, nhưng hệ thống sẽ hỗ trợ highlight nếu họ click đúng.
+        }
+
+        function checkWinner() {
+            alert("Host đang kiểm tra vé của người báo thắng...");
+            // Logic so khớp vé người thắng với calledNumbers
+        }
+
+        // --- 5. LOGIC RESET (FIX BUG THEO YÊU CẦU) ---
+        // "Sau ván chơi, tôi vẫn giữ vé cũ... bắt đầu ván mới ô tô màu trở lại bình thường"
+        function resetGame() {
+            if(!confirm("Bắt đầu ván mới? Vé của người chơi sẽ được giữ nguyên, chỉ xóa các ô đã tô.")) return;
+
+            // Reset dữ liệu game
+            calledNumbers = [];
+            document.getElementById('current-number').innerText = "--";
+            
+            // Reset Bảng Lịch Sử
+            document.querySelectorAll('.history-num').forEach(el => el.classList.remove('active'));
+
+            // QUAN TRỌNG: Reset Vé (Giữ số, xóa màu)
+            // Lấy tất cả các ô đang marked, bỏ marked đi
+            document.querySelectorAll('.cell.marked').forEach(el => el.classList.remove('marked'));
+            
+            // Xóa highlight hàng (đỏ/vàng)
+            document.querySelectorAll('.ticket-row').forEach(el => {
+                el.classList.remove('highlight-red', 'highlight-gold');
+            });
+
+            isGameActive = true;
+            addChatMessage("Hệ thống", "--- VÁN MỚI BẮT ĐẦU ---");
+        }
+
+        // --- NAVIGATION & CHAT ---
+        
+        function login(userRole) {
+            const name = document.getElementById('username').value;
+            if (!name) return alert("Vui lòng nhập tên!");
+            
+            currentUser = name;
+            role = userRole;
+            document.getElementById('display-name').innerText = currentUser;
+
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('lobby-screen').classList.remove('hidden');
+
+            if (role === 'host') {
+                document.getElementById('host-controls').classList.remove('hidden');
+            } else {
+                document.getElementById('player-controls').classList.remove('hidden');
+            }
+        }
+
+        function joinRoom() {
+            const roomId = document.getElementById('room-id').value;
+            if (roomId !== '1234') return alert("Phòng không tồn tại! (Thử 1234)");
+            startGame();
+        }
+
+        function startGame() {
+            document.getElementById('lobby-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            renderHistoryBoard();
+            
+            // Sinh vé cho người chơi (Hoặc Host cũng có vé để chơi cùng)
+            currentTicket = generateTicketData();
+            renderTicket(currentTicket);
+
+            if (role === 'host') {
+                document.getElementById('game-host-controls').classList.remove('hidden');
+                isGameActive = true;
+            } else {
+                // Player chờ Host bắt đầu
+                isGameActive = true; // Demo thì cho true luôn
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value;
+            if (msg) {
+                addChatMessage(currentUser, msg);
+                input.value = '';
+            }
+        }
+
+        function addChatMessage(user, text) {
+            const box = document.getElementById('chat-messages');
+            box.innerHTML += `<div class="msg"><strong>${user}:</strong> ${text}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+    </script>
+</body>
 </html>
