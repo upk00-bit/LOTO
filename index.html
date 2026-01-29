@@ -29,7 +29,7 @@ button { padding: 6px 12px; margin-right: 8px; }
   background: gold;
 }
 
-.cell .dot {
+.dot {
   position: absolute;
   bottom: 4px;
   right: 4px;
@@ -39,13 +39,8 @@ button { padding: 6px 12px; margin-right: 8px; }
   border-radius: 50%;
 }
 
-.row-4 {
-  background: #ffd6d6;
-}
-
-.row-5 {
-  background: gold;
-}
+.row-4 { background: #ffd6d6; }
+.row-5 { background: gold; }
 
 .board {
   display: grid;
@@ -80,7 +75,7 @@ const COL_RANGES = [
 ]
 
 /* ================= STATE ================= */
-let ticket = null
+let ticket            // vé CỐ ĐỊNH – không đổi khi ván mới
 let calledNumbers = []
 let gameEnded = false
 
@@ -89,11 +84,13 @@ function generateTicket() {
   const grid = Array.from({ length: 9 }, () => Array(9).fill(null))
   const marked = Array.from({ length: 9 }, () => Array(9).fill(false))
 
+  // mỗi cột pool riêng → không trùng số
   COL_RANGES.forEach(([min, max], col) => {
     const pool = shuffle(range(min, max)).slice(0, 9)
     for (let r = 0; r < 9; r++) grid[r][col] = pool[r]
   })
 
+  // mỗi hàng giữ đúng 5 số
   for (let r = 0; r < 9; r++) {
     shuffle(range(0, 8)).slice(0, 4).forEach(c => grid[r][c] = null)
   }
@@ -101,13 +98,10 @@ function generateTicket() {
   return { grid, marked }
 }
 
-/* ================= INIT ================= */
+/* ================= INIT (CHỈ 1 LẦN) ================= */
 function initGame() {
-  ticket = generateTicket()
-  calledNumbers = []
-  gameEnded = false
-  renderTicket()
-  renderBoard()
+  ticket = generateTicket()   // ❗ chỉ chạy khi load
+  startNewRound()
 }
 
 /* ================= RENDER ================= */
@@ -121,20 +115,19 @@ function renderTicket() {
     row.forEach((num, c) => {
       const d = document.createElement('div')
       d.className = 'cell'
+      d.innerText = num ?? ''
 
       if (ticket.marked[r][c]) d.classList.add('marked')
 
-      // gợi ý số đã gọi bằng chấm nhỏ
+      // ✅ GỢI Ý SỐ ĐÃ GỌI = CHẤM NHỎ
       if (num && calledNumbers.includes(num)) {
         const dot = document.createElement('div')
         dot.className = 'dot'
         d.appendChild(dot)
       }
 
-      d.innerText = num ?? ''
-
       d.onclick = () => {
-        if (!num) return
+        if (!num || gameEnded) return
         ticket.marked[r][c] = !ticket.marked[r][c]
         renderTicket()
       }
@@ -142,7 +135,7 @@ function renderTicket() {
       rowCells.push(d)
     })
 
-    // check row
+    // check hàng
     const numsInRow = row.filter(n => n !== null)
     const calledInRow = numsInRow.filter(n => calledNumbers.includes(n)).length
 
@@ -178,20 +171,24 @@ function callNumber() {
   const n = remain[Math.floor(Math.random() * remain.length)]
   calledNumbers.push(n)
   document.getElementById('current').innerText = 'Số hiện tại: ' + n
+
   renderTicket()
   renderBoard()
 }
 
 function endGame() {
   gameEnded = true
-  setTimeout(() => {
-    alert('🎉 KINH! VÁN CHƠI KẾT THÚC')
-  }, 100)
+  setTimeout(() => alert('🎉 KINH! VÁN CHƠI KẾT THÚC'), 100)
 }
 
+/* ================= RESET ROUND (KHÔNG ĐỔI VÉ) ================= */
 function startNewRound() {
-  initGame()
+  calledNumbers = []
+  ticket.marked = Array.from({ length: 9 }, () => Array(9).fill(false))
+  gameEnded = false
   document.getElementById('current').innerText = 'Số hiện tại: -'
+  renderTicket()
+  renderBoard()
 }
 
 /* ================= UTILS ================= */
