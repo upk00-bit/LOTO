@@ -3,15 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <title>Lô Tô Game</title>
+
 <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-}
+body { font-family: Arial, sans-serif; padding: 20px; }
 
 button {
   padding: 6px 12px;
-  margin-right: 8px;
+  margin: 6px 0;
   cursor: pointer;
 }
 
@@ -19,13 +17,11 @@ button {
   display: grid;
   grid-template-columns: repeat(2, max-content);
   gap: 16px;
-  margin-bottom: 20px;
 }
 
 .ticket-wrap {
   border: 2px solid #aaa;
   padding: 8px;
-  cursor: pointer;
 }
 
 .ticket-wrap.selected {
@@ -43,14 +39,11 @@ button {
   height: 36px;
   border: 1px solid #ccc;
   display: flex;
-  justify-content: center;
   align-items: center;
-  font-size: 14px;
+  justify-content: center;
 }
 
-.marked {
-  background: gold;
-}
+.marked { background: gold; }
 
 .board {
   display: grid;
@@ -59,9 +52,7 @@ button {
   margin-top: 12px;
 }
 
-.called {
-  background: lightgreen;
-}
+.called { background: lightgreen; }
 </style>
 </head>
 
@@ -70,75 +61,70 @@ button {
 <h1>🎲 Lô Tô Game</h1>
 
 <h2 id="current">Số hiện tại: -</h2>
-
 <button onclick="callNumber()">🎯 Bốc số</button>
-<button onclick="startNewRound()">🔄 Bắt đầu ván mới</button>
+<button onclick="startNewRound()">🔄 Ván mới</button>
 
-<h3>👉 Chọn vé (bắt buộc)</h3>
+<h3>👉 Chọn vé</h3>
 <div id="tickets"></div>
 
-<h3>📋 Board 1–90</h3>
+<h3>📋 Board</h3>
 <div id="board" class="board"></div>
 
 <script>
-/* ===================== CONFIG ===================== */
+/* ================= CONFIG ================= */
 const COL_RANGES = [
   [1,9],[10,19],[20,29],[30,39],[40,49],
   [50,59],[60,69],[70,79],[80,90]
 ]
 
-/* ===================== STATE ===================== */
+/* ================= STATE ================= */
 let tickets = []
-let selectedTicket = null
+let selectedTicketIndex = null
 let calledNumbers = []
 
-/* ===================== TICKET GENERATOR ===================== */
+/* ================= GENERATE TICKET ================= */
 function generateTicket() {
   const grid = Array.from({ length: 9 }, () => Array(9).fill(null))
   const marked = Array.from({ length: 9 }, () => Array(9).fill(false))
 
-  // mỗi cột có pool riêng → KHÔNG TRÙNG SỐ
   COL_RANGES.forEach(([min, max], col) => {
     const pool = shuffle(range(min, max)).slice(0, 9)
-    for (let row = 0; row < 9; row++) {
-      grid[row][col] = pool[row]
-    }
+    for (let r = 0; r < 9; r++) grid[r][col] = pool[r]
   })
 
-  // mỗi hàng giữ đúng 5 số
   for (let r = 0; r < 9; r++) {
-    const removeCols = shuffle(range(0, 8)).slice(0, 4)
-    removeCols.forEach(c => grid[r][c] = null)
+    shuffle(range(0, 8)).slice(0, 4).forEach(c => grid[r][c] = null)
   }
 
   return { grid, marked }
 }
 
-/* ===================== INIT ===================== */
+/* ================= INIT ================= */
 function initTickets() {
   tickets = Array.from({ length: 20 }, generateTicket)
-  selectedTicket = null
+  selectedTicketIndex = null
   renderTickets()
 }
 
-/* ===================== RENDER ===================== */
+/* ================= RENDER ================= */
 function renderTickets() {
   const el = document.getElementById('tickets')
   el.innerHTML = ''
 
-  tickets.forEach((t, index) => {
+  tickets.forEach((t, i) => {
     const wrap = document.createElement('div')
     wrap.className = 'ticket-wrap'
-    if (t === selectedTicket) wrap.classList.add('selected')
+    if (i === selectedTicketIndex) wrap.classList.add('selected')
 
-    wrap.onclick = () => {
-      selectedTicket = t
+    const title = document.createElement('div')
+    title.innerText = `Vé ${i + 1}`
+
+    const btn = document.createElement('button')
+    btn.innerText = 'Chọn vé này'
+    btn.onclick = () => {
+      selectedTicketIndex = i
       renderTickets()
     }
-
-    const label = document.createElement('div')
-    label.innerText = `Vé ${index + 1}`
-    label.style.marginBottom = '6px'
 
     const grid = document.createElement('div')
     grid.className = 'ticket'
@@ -153,7 +139,8 @@ function renderTickets() {
       })
     )
 
-    wrap.appendChild(label)
+    wrap.appendChild(title)
+    wrap.appendChild(btn)
     wrap.appendChild(grid)
     el.appendChild(wrap)
   })
@@ -171,27 +158,24 @@ function renderBoard() {
   }
 }
 
-/* ===================== GAME LOGIC ===================== */
+/* ================= GAME ================= */
 function callNumber() {
-  if (!selectedTicket) {
-    alert('Bạn phải chọn vé trước!')
+  if (selectedTicketIndex === null) {
+    alert('Hãy chọn vé trước!')
     return
   }
 
   const remain = range(1, 90).filter(n => !calledNumbers.includes(n))
-  if (!remain.length) {
-    alert('Đã gọi hết số')
-    return
-  }
+  if (!remain.length) return alert('Hết số')
 
   const n = remain[Math.floor(Math.random() * remain.length)]
   calledNumbers.push(n)
   document.getElementById('current').innerText = 'Số hiện tại: ' + n
 
-  // ✅ AUTO SCAN
-  selectedTicket.grid.forEach((row, r) =>
+  const ticket = tickets[selectedTicketIndex]
+  ticket.grid.forEach((row, r) =>
     row.forEach((num, c) => {
-      if (num === n) selectedTicket.marked[r][c] = true
+      if (num === n) ticket.marked[r][c] = true
     })
   )
 
@@ -203,12 +187,13 @@ function startNewRound() {
   calledNumbers = []
   tickets.forEach(t =>
     t.marked = Array.from({ length: 9 }, () => Array(9).fill(false))
+  selectedTicketIndex = null
   document.getElementById('current').innerText = 'Số hiện tại: -'
   renderTickets()
   renderBoard()
 }
 
-/* ===================== UTILS ===================== */
+/* ================= UTILS ================= */
 function range(min, max) {
   return Array.from({ length: max - min + 1 }, (_, i) => i + min)
 }
@@ -216,7 +201,7 @@ function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5)
 }
 
-/* ===================== START ===================== */
+/* ================= START ================= */
 initTickets()
 renderBoard()
 </script>
